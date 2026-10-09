@@ -86,7 +86,7 @@ class ExtractSQLite(Task):
         # loop over lead times
         # Also allow multiple extraction lists, typically UA and SFC parameters
         # with different station lists.
-        dt_list = oi2dt_list(self.infile_dt, self.forecast_range)
+        dt_list = oi2dt_list(self.infile_dt, self.forecast_range, self.basetime)
         for i in range(self.n_list):
             logger.info("SQLITE: parameter file {}", self.param_file[i])
             logger.info("SQLITE: station file {}", self.station_file[i])

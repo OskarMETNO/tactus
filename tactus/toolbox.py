@@ -12,11 +12,10 @@ import boto3
 import geohash
 import tomlkit
 from botocore.exceptions import ClientError
-from isodate import parse_duration
 from troika.connections.ssh import SSHConnection
 
 from .csc_actions import SelectTstep
-from .datetime_utils import as_datetime, evaluate_date, get_decade, oi2dt_list
+from .datetime_utils import as_datetime, as_timedelta, evaluate_date, get_decade, oi2dt_list
 from .logs import logger
 from .os_utils import tactusmakedirs
 
@@ -161,6 +160,10 @@ class Platform:
         gen_macros = f"{macro_config}.gen_macros"
         for key, val in self.expand_macros(self.config.get(gen_macros, {})).items():
             self.store_macro(key, val)
+
+    def add_macro(self, macros):
+        """Add new macros."""
+        self.macros.update(macros)
 
     def fill_macros(self):
         """Fill the macros."""
@@ -614,7 +617,7 @@ class Platform:
 
         forecast_range = self.config.get("general.times.forecast_range", None)
         if isinstance(forecast_range, str):
-            forecast_range = parse_duration(forecast_range)
+            forecast_range = as_timedelta(forecast_range, basetime)
 
         if forecast_range is not None:
             pattern = self.substitute_duration(pattern, forecast_range, "FORECAST_RANGE_")
@@ -793,9 +796,14 @@ class FileManager:
             files = data["files"]
             if isinstance(files, list):
                 for filename in files:
+                    if isinstance(filename, str):
+                        infile = filename
+                        outfile = filename
+                    else:
+                        infile, outfile = filename.popitem()
                     self.input(
-                        f"{data['path']}/{filename}",
-                        filename,
+                        f"{data['path']}/{infile}",
+                        outfile,
                         basetime=basetime,
                         validtime=validtime,
                         provider_id=provider_id,
@@ -1000,7 +1008,7 @@ class FileManager:
         logger.info("template: {}, settings: {}", input_template, output_settings)
         files = {}
         # Store the output
-        dt_list = oi2dt_list(output_settings, forecast_range)
+        dt_list = oi2dt_list(output_settings, forecast_range, basetime)
         for dt in dt_list:
             validtime = basetime + dt
             fname = self.platform.substitute(input_template, validtime=validtime)

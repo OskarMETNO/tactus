@@ -101,7 +101,9 @@ class Marsprep(Task):
 
         # Get the times from config.toml
         self.basetime = as_datetime(self.config["general.times.basetime"])
-        forecast_range = as_timedelta(self.config["general.times.forecast_range"])
+        forecast_range = as_timedelta(
+            self.config["general.times.forecast_range"], self.basetime
+        )
 
         # Get boundary informations
         self.boundary = Boundary(config)

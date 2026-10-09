@@ -16,7 +16,7 @@ from omegaconf.listconfig import ListConfig
 
 from .config_parser import ConfigPaths
 from .csc_actions import SelectTstep
-from .datetime_utils import as_timedelta, oi2dt_list
+from .datetime_utils import as_datetime, as_timedelta, oi2dt_list
 from .logs import logger
 from .toolbox import Platform
 
@@ -447,6 +447,7 @@ class NamelistGenerator:
     def fn_steplist(self, time_intervals):
         """Resolve namelist function steplist."""
         forecast_range = self.config["general.times.forecast_range"]
+        basetime = as_datetime(self.config["general.times.basetime"])
         tstep = self.platform.substitute(self.config["domain.tstep"])
         try:
             tstep = int(tstep)
@@ -455,7 +456,7 @@ class NamelistGenerator:
         # decode string into list
         time_intervals = find_value(time_intervals)
 
-        dtlist = oi2dt_list(time_intervals, forecast_range)
+        dtlist = oi2dt_list(time_intervals, forecast_range, basetime)
         logger.debug("steplist: {} // {}", time_intervals, forecast_range)
         logger.debug("dtlist: {}", dtlist)
         if dtlist:

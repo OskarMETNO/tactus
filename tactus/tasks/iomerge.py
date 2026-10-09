@@ -236,7 +236,7 @@ class IOmerge(Task):
                 and filetype in IOMERGE_FILETYPES
             ):
                 logger.debug("filetype: {}, oi: {}", filetype, oi)
-                for dt in oi2dt_list(oi, self.forecast_range):
+                for dt in oi2dt_list(oi, self.forecast_range, self.basetime):
                     if dt not in dt_list:
                         dt_list[dt] = []
                     dt_list[dt].append({"dt": dt, "filetype": filetype})

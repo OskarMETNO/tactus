@@ -50,7 +50,7 @@ class GlGrib(Task):
         """Create list of files to process."""
         files = {}
         # Store the output
-        dt_list = oi2dt_list(output_settings, self.forecast_range)
+        dt_list = oi2dt_list(output_settings, self.forecast_range, self.basetime)
         for dt in dt_list:
             validtime = self.basetime + dt
             fname = self.platform.substitute(input_template, validtime=validtime)

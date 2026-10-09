@@ -19,7 +19,9 @@ class Boundary:
         platform = Platform(config)
 
         basetime = as_datetime(config["general.times.basetime"])
-        self.forecast_range = as_timedelta(config["general.times.forecast_range"])
+        self.forecast_range = as_timedelta(
+            config["general.times.forecast_range"], basetime
+        )
 
         try:
             bd_index_time_dict = config["task.args.bd_index_time_dict"]

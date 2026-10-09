@@ -83,7 +83,7 @@ class Forecast(PySurfexBaseTask):
             filetype (str): Filename template
             periods (str): Output list
         """
-        dt_list = oi2dt_list(periods, self.forecast_range)
+        dt_list = oi2dt_list(periods, self.forecast_range, self.basetime)
         logger.info("Input template: {}", filetype["model"])
         logger.info("Output template: {}", filetype["archive"])
         for dt in dt_list:
@@ -127,7 +127,7 @@ class Forecast(PySurfexBaseTask):
     def sst_sic_input(self, intp_bddir):
         """Link SST & SIC input file to forecast directory."""
         current_datetime = self.basetime
-        end_datetime = self.basetime + as_timedelta(self.forecast_range)
+        end_datetime = self.basetime + as_timedelta(self.forecast_range, self.basetime)
         i = 0
         while current_datetime <= end_datetime:
             source = self.platform.substitute(
@@ -163,7 +163,7 @@ class Forecast(PySurfexBaseTask):
         NOTE: This function has been replaced by io_merge tasks.
         It is only called if n_io_merge=0.
         """
-        dt_list = oi2dt_list(periods, self.forecast_range)
+        dt_list = oi2dt_list(periods, self.forecast_range, self.basetime)
 
         for dt in dt_list:
             ftemplate = self.file_templates[filetype]["model"]
@@ -260,7 +260,7 @@ class Forecast(PySurfexBaseTask):
         self.fmanager.input(initfile, initfile_model)
 
         current_datetime = self.basetime + self.bdint
-        end_datetime = self.basetime + as_timedelta(self.forecast_range)
+        end_datetime = self.basetime + as_timedelta(self.forecast_range, self.basetime)
         i = 1
         while current_datetime <= end_datetime:
             source = self.platform.substitute(

@@ -5,7 +5,6 @@ import datetime
 from typing import List, Literal, Union
 
 import pytest
-from isodate.duration import Duration
 from pytest_mock import MockFixture
 
 from tactus.datetime_utils import (
@@ -33,7 +32,6 @@ def test_as_datetime():
     [
         ("PT3H", datetime.timedelta(hours=3)),
         ("PT144H", datetime.timedelta(hours=144)),
-        ("P4M", Duration(months=4)),
         ("P5D", datetime.timedelta(days=5)),
         ("PT6M", datetime.timedelta(minutes=6)),
         (datetime.timedelta(hours=3), datetime.timedelta(hours=3)),
@@ -41,6 +39,23 @@ def test_as_datetime():
 )
 def test_timedelta(param, ref):
     assert as_timedelta(param) == ref
+
+
+@pytest.mark.parametrize(
+    ("param", "basetime", "ref"),
+    [
+        ("P1M", datetime.datetime(2024, 1, 1), datetime.timedelta(days=31)),
+        ("P1M", datetime.datetime(2024, 2, 1), datetime.timedelta(days=29)),
+        ("P1Y", datetime.datetime(2023, 1, 1), datetime.timedelta(days=365)),
+    ],
+)
+def test_timedelta_calendar_duration(param, basetime, ref):
+    assert as_timedelta(param, basetime) == ref
+
+
+def test_timedelta_calendar_duration_requires_basetime():
+    with pytest.raises(ValueError):
+        as_timedelta("P1M")
 
 
 def test_as_dt2str():

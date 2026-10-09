@@ -2,7 +2,7 @@
 """Implement helper routines to deal with dates and times."""
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import dateutil.parser
 import isodate
@@ -42,12 +42,19 @@ def as_julian(yyyymmdd):
     return date.toordinal() + 1721425  # Julian Day Number at midnight
 
 
-def as_timedelta(obj) -> timedelta:
-    """Convert obj to string and parse as duration."""
+def as_timedelta(obj, basetime=None) -> timedelta:
+    """Convert obj to timedelta. Calendar durations (months, years) need a basetime."""
     if isinstance(obj, timedelta):
         return obj
 
-    return isodate.parse_duration(str(obj))
+    duration = (
+        obj if isinstance(obj, isodate.Duration) else isodate.parse_duration(str(obj))
+    )
+    if isinstance(duration, timedelta):
+        return duration
+    if basetime is None:
+        raise ValueError(f"Duration {obj} needs a basetime to be resolved")
+    return basetime + duration - basetime
 
 
 def dt2str(dt):
@@ -112,7 +119,9 @@ def check_syntax(output_settings: Union[Tuple[str], List[str]], length: int):
 
 
 def expand_output_settings(
-    output_settings: Union[str, Tuple[str], List[str]], forecast_range: str
+    output_settings: Union[str, Tuple[str], List[str]],
+    forecast_range: str,
+    basetime: Optional[datetime] = None,
 ) -> List[List[timedelta]]:
     """Expand the output_settings coming from config.
 
@@ -134,7 +143,7 @@ def expand_output_settings(
         check_syntax([output_settings], 0)
         # Infer the output intervals from the forecast range and output settings
         if output_settings:
-            if as_timedelta(output_settings) == zero_increment:
+            if as_timedelta(output_settings, basetime) == zero_increment:
                 output_intervals = [":".join(["PT0H", "PT0H", "PT1H"])]
             else:
                 output_intervals = [":".join(["PT0H", forecast_range, output_settings])]
@@ -146,18 +155,20 @@ def expand_output_settings(
 
     # Check for zero size time increments
     for interval in output_intervals:
-        if as_timedelta(interval.split(":")[2]) == zero_increment:
+        if as_timedelta(interval.split(":")[2], basetime) == zero_increment:
             raise RuntimeError(f"Zero size time increments not allowed:{interval}")
 
     # Convert the output intervals to a list of lists of timedelta objects
     return [
-        [as_timedelta(item) for item in interval.split(":")]
+        [as_timedelta(item, basetime) for item in interval.split(":")]
         for interval in output_intervals
     ]
 
 
 def oi2dt_list(
-    output_settings: Union[str, Tuple[str], List[str]], forecast_range: str
+    output_settings: Union[str, Tuple[str], List[str]],
+    forecast_range: str,
+    basetime: Optional[datetime] = None,
 ) -> List[timedelta]:
     """Build list of output occurences.
 
@@ -169,11 +180,11 @@ def oi2dt_list(
     Returns:
         dt (List[timedelta]) : Sorted list of output occurences
     """
-    sections = expand_output_settings(output_settings, forecast_range)
+    sections = expand_output_settings(output_settings, forecast_range, basetime)
 
     output_dt = set()
     current_dt: timedelta()
-    forecast_timedelta = as_timedelta(forecast_range)
+    forecast_timedelta = as_timedelta(forecast_range, basetime)
     for start, end, step in sections:
         current_dt = start
         while current_dt <= end and current_dt <= forecast_timedelta:
@@ -316,3 +327,30 @@ def evaluate_date(date: str, reference_date=None) -> str:
     return (
         isodate.parse_datetime(date).isoformat(timespec="seconds").replace("+00:00", "Z")
     )
+
+
+def split_date(dt, template=("%Y", "%m", "%d", "%H")):
+    """Split datetime object with strftime.
+
+    Args:
+        dt (datetime): Reference time
+        template (list): List of strings with strfmt arguments
+
+    Returns:
+        A list of extracted strings
+
+    """
+    return [dt.strftime(t) for t in template]
+
+
+def td2min(td):
+    """Return a timedelta object value in minutes and as string.
+
+    Args:
+        td (timedelta): Timedelta object
+
+    Returns:
+        A string of nearest representation of td in minutes
+
+    """
+    return str(int(td.total_seconds() / 60))

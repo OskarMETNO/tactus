@@ -216,7 +216,7 @@ def derived_variables(config, processor_layout=None):
 
     # Time ranges
     bdint = as_timedelta(config["boundaries.bdint"])
-    forecast_range = as_timedelta(config["general.times.forecast_range"])
+    forecast_range = as_timedelta(config["general.times.forecast_range"], basetime)
     cstop = int((forecast_range.days * 24 * 3600 + forecast_range.seconds) / 60)
     if cstop % 60 == 0:
         cstop = int(cstop / 60)
