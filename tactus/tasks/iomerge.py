@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from time import sleep, time
 
-from ..datetime_utils import as_datetime, as_timedelta, oi2dt_list
+from ..datetime_utils import as_datetime, as_duration, as_timedelta, oi2dt_list
 from ..logs import logger
 from .base import Task
 from .batch import BatchJob
@@ -30,7 +30,7 @@ class IOmerge(Task):
         self.domain = self.config["domain.name"]
 
         self.basetime = as_datetime(self.config["general.times.basetime"])
-        self.cycle_length = as_timedelta(self.config["general.times.cycle_length"])
+        self.cycle_length = as_duration(self.config["general.times.cycle_length"])
         self.forecast_range = self.config["general.times.forecast_range"]
 
         self.tactus_home = self.config["platform.tactus_home"]

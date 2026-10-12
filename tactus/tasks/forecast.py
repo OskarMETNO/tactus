@@ -9,7 +9,7 @@ from pysurfex.namelist import InputDataFromNamelist
 from pysurfex.platform_deps import SystemFilePathsFromFile
 
 from ..config_parser import ConfigPaths
-from ..datetime_utils import as_datetime, as_timedelta, oi2dt_list
+from ..datetime_utils import as_datetime, as_duration, as_timedelta, oi2dt_list
 from ..derived_variables import check_fullpos_namelist
 from ..initial_conditions import InitialConditions
 from ..logs import logger
@@ -39,7 +39,7 @@ class Forecast(PySurfexBaseTask):
         self.forecast_dir_link = self.config["system.forecast_dir_link"]
 
         self.basetime = as_datetime(self.config["general.times.basetime"])
-        self.cycle_length = as_timedelta(self.config["general.times.cycle_length"])
+        self.cycle_length = as_duration(self.config["general.times.cycle_length"])
         self.bdint = as_timedelta(self.config["boundaries.bdint"])
         self.intp_bddir = self.config["system.intp_bddir"]
         self.forecast_range = self.config["general.times.forecast_range"]

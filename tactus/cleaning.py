@@ -4,8 +4,11 @@ import os
 import re
 import shutil
 import subprocess
+from datetime import timedelta
 
-from .datetime_utils import as_datetime, as_timedelta
+import isodate
+
+from .datetime_utils import as_datetime, as_duration
 from .general_utils import recursive_unfreeze
 from .logs import logger
 from .os_utils import Search, remove_empty_dirs
@@ -25,6 +28,28 @@ def wipe_ecfs(ecfs_path):
         logger.info("Clean ecfs_path:{}", ecfs_path)
     except subprocess.CalledProcessError as err:
         logger.warning(err)
+
+
+def _to_months(duration):
+    """Return the length of a calendar-only duration in months, else None."""
+    if isinstance(duration, isodate.Duration) and duration.tdelta == timedelta(0):
+        return duration.years * 12 + duration.months
+    return None
+
+
+def _is_multiple_of(delay, cycle_length):
+    """Return True if delay is an integer multiple of cycle_length."""
+    if isinstance(delay, timedelta) and delay == timedelta(0):
+        return True
+    if isinstance(cycle_length, timedelta):
+        return isinstance(delay, timedelta) and delay % cycle_length == timedelta(0)
+    cycle_months = _to_months(cycle_length)
+    delay_months = _to_months(delay)
+    return (
+        bool(cycle_months)
+        and delay_months is not None
+        and delay_months % cycle_months == 0
+    )
 
 
 class CleanTactus:
@@ -55,7 +80,7 @@ class CleanTactus:
             if basetime is None
             else basetime
         )
-        self.cycle_length = as_timedelta(config["general.times.cycle_length"])
+        self.cycle_length = as_duration(config["general.times.cycle_length"])
         self.platform = Platform(config)
         self._check_choice(self.defaults, "defaults")
         archiving = config.get_as_dict("archiving")
@@ -114,8 +139,8 @@ class CleanTactus:
         for tag in ["cleaning_delay", "cleanin_max_delay", "step"]:
             if tag not in choice:
                 continue
-            delay = choice[tag]
-            if as_timedelta(delay) % self.cycle_length != as_timedelta("PT0H"):
+            delay = as_duration(choice[tag])
+            if not _is_multiple_of(delay, self.cycle_length):
                 logger.error(f"{tag} must be a multiple of cycle_length")
                 logger.error(f"{tag}:{delay}")
                 logger.error(f"cycle_length:{self.cycle_length}")
@@ -145,19 +170,19 @@ class CleanTactus:
                     choice["cleaning_delay"] = choice["ncycles_delay"] * self.cycle_length
                     choice.pop("ncycles_delay")
                 else:
-                    choice["cleaning_delay"] = as_timedelta(choice["cleaning_delay"])
+                    choice["cleaning_delay"] = as_duration(choice["cleaning_delay"])
 
                 if "cleaning_max_delay" not in choice:
                     choice["cleaning_max_delay"] = choice["cleaning_delay"]
                 else:
-                    choice["cleaning_max_delay"] = as_timedelta(
+                    choice["cleaning_max_delay"] = as_duration(
                         choice["cleaning_max_delay"]
                     )
 
                 if "step" not in choice:
                     choice["step"] = self.cycle_length
                 else:
-                    choice["step"] = as_timedelta(choice["step"])
+                    choice["step"] = as_duration(choice["step"])
 
                 if dry_run is not None:
                     choice["dry_run"] = dry_run
@@ -170,11 +195,14 @@ class CleanTactus:
         for name, choice in self.clean_tasks.items():
             logger.info("Cleaning {}:{}", name, choice)
 
-            basetime = self.basetime - choice["cleaning_delay"]
+            start = self.basetime - choice["cleaning_delay"]
             endtime = self.basetime - choice["cleaning_max_delay"]
             dry_run = choice["dry_run"]
             wipe = choice["wipe"]
 
+            # Step from start rather than accumulating, so calendar steps do not drift.
+            n = 0
+            basetime = start
             while basetime >= endtime:
                 inp = self.platform.substitute(choice["path"], basetime=basetime)
                 if choice["path"]:
@@ -222,4 +250,5 @@ class CleanTactus:
                     # Remove possible empty directories
                     remove_empty_dirs(inp, dry_run=dry_run)
 
-                basetime -= choice["step"]
+                n += 1
+                basetime = start - n * choice["step"]

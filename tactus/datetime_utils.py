@@ -57,6 +57,13 @@ def as_timedelta(obj, basetime=None) -> timedelta:
     return basetime + duration - basetime
 
 
+def as_duration(obj) -> Union[timedelta, isodate.Duration]:
+    """Convert obj to timedelta, or to an unresolved isodate.Duration for months and years."""
+    if isinstance(obj, (timedelta, isodate.Duration)):
+        return obj
+    return isodate.parse_duration(str(obj))
+
+
 def dt2str(dt):
     """Convert timdelta object to file name suitable string.
 

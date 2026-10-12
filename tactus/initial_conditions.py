@@ -2,7 +2,7 @@
 
 import os
 
-from .datetime_utils import as_datetime, as_timedelta
+from .datetime_utils import as_datetime, as_duration
 from .logs import logger
 from .toolbox import Platform
 
@@ -23,7 +23,7 @@ class InitialConditions(object):
         self.intp_bddir = self.config["system.intp_bddir"]
         self.basetime = as_datetime(self.config["general.times.basetime"])
         self.starttime = as_datetime(self.config["general.times.start"])
-        self.cycle_length = as_timedelta(self.config["general.times.cycle_length"])
+        self.cycle_length = as_duration(self.config["general.times.cycle_length"])
         self.archive = self.config["system.archive"]
         self.intp_bddir_sfx = self.config.get("system.intp_bddir_sfx", self.archive)
         self.file_templates = self.config.get_as_dict("file_templates")

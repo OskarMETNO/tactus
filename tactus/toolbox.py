@@ -6,6 +6,7 @@ import inspect
 import os
 import re
 import sys
+from datetime import timedelta
 from typing import Any, Union
 
 import boto3
@@ -15,7 +16,13 @@ from botocore.exceptions import ClientError
 from troika.connections.ssh import SSHConnection
 
 from .csc_actions import SelectTstep
-from .datetime_utils import as_datetime, as_timedelta, evaluate_date, get_decade, oi2dt_list
+from .datetime_utils import (
+    as_datetime,
+    as_timedelta,
+    evaluate_date,
+    get_decade,
+    oi2dt_list,
+)
 from .logs import logger
 from .os_utils import tactusmakedirs
 
@@ -616,10 +623,10 @@ class Platform:
                 pattern = self.substitute_datetime(pattern, as_datetime(_end), "_END")
 
         forecast_range = self.config.get("general.times.forecast_range", None)
-        if isinstance(forecast_range, str):
+        if isinstance(forecast_range, str) and basetime is not None:
             forecast_range = as_timedelta(forecast_range, basetime)
 
-        if forecast_range is not None:
+        if isinstance(forecast_range, timedelta):
             pattern = self.substitute_duration(pattern, forecast_range, "FORECAST_RANGE_")
 
         logger.debug("Return pattern={}", pattern)

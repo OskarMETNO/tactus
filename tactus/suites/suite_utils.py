@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, Generator, Iterator, List
 
-from ..datetime_utils import as_datetime, as_timedelta
+from ..datetime_utils import as_datetime, as_duration, as_timedelta
 from ..logs import logger
 
 
@@ -35,11 +35,14 @@ class Cycles:
     def _generate_cycles(self):
         """Generate cycles."""
         # Convert attributes to datetime objects.
-        cycle_time = as_datetime(self.first_cycle)
+        first_cycle_time = as_datetime(self.first_cycle)
         last_cycle_time = as_datetime(self.last_cycle)
-        cycle_length_timedelta = as_timedelta(self.cycle_length)
+        cycle_length = as_duration(self.cycle_length)
 
-        # Generate cycles.
+        # Generate cycles. Each cycle is anchored on the first cycle so that calendar
+        # durations (e.g. P1M) do not drift at the end of short months.
+        n = 0
+        cycle_time = first_cycle_time
         while cycle_time <= last_cycle_time:
             logger.debug("cycle_time {}", cycle_time)
             self._cycles.append(
@@ -50,7 +53,8 @@ class Cycles:
                     basetime=cycle_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 )
             )
-            cycle_time += cycle_length_timedelta
+            n += 1
+            cycle_time = first_cycle_time + n * cycle_length
 
     @property
     def current_index(self) -> int:
