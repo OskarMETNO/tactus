@@ -3,6 +3,7 @@
 import ast
 import contextlib
 import os
+from datetime import datetime, timedelta
 from functools import cached_property
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -118,6 +119,12 @@ class Marsprep(Task):
         self.init_date_str = self.boundary.bd_basetime.strftime("%Y%m%d")
         self.init_hour_str = self.boundary.bd_basetime.strftime("%H")
 
+        self.analysis_boundaries = bool(self.mars.get("analysis_boundaries", False))
+        if self.analysis_boundaries and any(self.bdmember):
+            raise ValueError(
+                "Analysis boundaries do not support perturbed boundary members"
+            )
+
         exist_snow = False
         with contextlib.suppress(KeyError):
             self.param_snow = get_value_from_dict(
@@ -215,7 +222,7 @@ class Marsprep(Task):
 
         # Set stream
         base_stream = get_value_from_dict(
-            self.mars["stream"], self.init_date_str, request.time
+            self.mars["stream"], request.date, request.time
         )
         if bdmember == [0]:
             stream = self.mars.get("stream_control", base_stream)
@@ -943,6 +950,7 @@ class Marsprep(Task):
         specify_domain: bool = False,
         grid: Optional[str] = None,
         fieldset: Optional[str] = None,
+        analysis_time: Optional[datetime] = None,
     ) -> BaseRequest:
         """Build request to retrieve data from mars.
 
@@ -958,18 +966,20 @@ class Marsprep(Task):
             specify_domain: Whether to specify domain or not.
             grid: The grid to use.
             fieldset: Name of fieldset. Defaults None.
+            analysis_time: Valid time of the request. Defaults to bd_basetime.
 
         Returns:
             request: BaseRequest to retrieve data
 
         """
+        valid_time = analysis_time or self.boundary.bd_basetime
         request = BaseRequest(
             class_=self.mars["class"],
             data_type=data_type,
             expver=self.mars["expver"],
             levtype=levtype,
-            date=self.init_date_str,
-            time=self.init_hour_str,
+            date=valid_time.strftime("%Y%m%d"),
+            time=valid_time.strftime("%H"),
             steps=steps,
             param=param,
             target=target,
@@ -1030,6 +1040,29 @@ class Marsprep(Task):
             write_method: The write method to use when writing the request to file.
             grid: The grid to use.
         """
+        if self.analysis_boundaries and prefetch and source is None:
+            if len(steps) > 1 and "[STEP]" not in target:
+                raise ValueError(f"Target {target} needs [STEP] to retrieve several steps")
+            stem, suffix = os.path.splitext(req_file_name)
+            for step in steps:
+                request = self._build_retrieve_request(
+                    data_type,
+                    levtype,
+                    param,
+                    [0],
+                    target.replace("[STEP]", str(step)),
+                    members,
+                    source,
+                    prefetch,
+                    specify_domain,
+                    grid,
+                    analysis_time=self.boundary.bd_basetime + timedelta(hours=step),
+                )
+                step_req_file_name = f"{stem}_{step}{suffix}"
+                write_retrieve_mars_req(request, step_req_file_name, write_method)
+                self._run_request_file(step_req_file_name)
+            return
+
         request = self._build_retrieve_request(
             data_type,
             levtype,

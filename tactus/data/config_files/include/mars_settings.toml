@@ -22,6 +22,35 @@
 [mars.DT12.stream]
   12 = "OPER"
 
+[mars.ERA5]
+  analysis_boundaries = true
+  class = "ea"
+  expver = "1"
+  GG = "32/33/39/40/41/42/139/141/170/172/183/198/235/236/35/36/37/38/238/243/244/245"
+  GG1 = "74/163/160/161/162/15/16/17/18/66/67"
+  GG_lsm = "172"
+  GG_sea = "31/34"
+  GG_skt = "235"
+  GG_snow = "33/238/228038/228141"
+  GG_soil = "234/173/174/43/30/29/28/27"
+  GGZ_type = "an"
+  grid = "0.25/0.25"
+  grid_ML = "AV"
+  ifs_cycle_length = "PT1H"
+  ifs_cycle_start = "PT0H"
+  levelist = "1/to/137"
+  resolution = "31"
+  SH = "152/138/155/130"
+  SHZ = "129"
+  SHZ_type = "an"
+  start_date = "1940-01-01T00:00:00Z"
+  stream = "OPER"
+  # ERA5 has no perturbed members; type_FC only serves the deterministic (None) member.
+  type_AN = "an"
+  type_FC = "an"
+  UA = "133/75/76/246/247/248"
+  Zlev_type = "ML"
+
 [mars.HRES]
   class = "OD"
   expver = "0001"

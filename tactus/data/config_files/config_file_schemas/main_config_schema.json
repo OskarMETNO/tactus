@@ -189,6 +189,7 @@
                 "lumi_DT",
                 "ATOS_DT",
                 "HRES",
+                "ERA5",
                 "@HOST@_DT",
                 "DT12",
                 "i5qp",

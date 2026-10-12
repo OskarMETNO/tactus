@@ -40,6 +40,12 @@ def mars_selection(selection: str, config: ParsedConfig) -> dict:
 
     """
     mars = config.get_as_dict(f"mars.{selection}")
+    if mars is None:
+        available = sorted(config.get_as_dict("mars", {}))
+        raise ValueError(
+            f"MARS selection '{selection}' is not defined in mars settings. "
+            f"Available selections: {available}"
+        )
     if "expver" not in mars:
         mars["expver"] = selection
 
